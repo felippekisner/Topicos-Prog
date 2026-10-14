@@ -6,5 +6,11 @@ list(PREPEND CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/build")
 
 find_package(raylib REQUIRED)
 
-add_executable(JogoNave main.c)
+add_executable(JogoNave main.c listaObstaculos.c listaObstaculos.h)
 target_link_libraries(JogoNave PRIVATE raylib)
+
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${CMAKE_CURRENT_SOURCE_DIR}/images"
+    "$<TARGET_FILE_DIR:${PROJECT_NAME}>/images"
+)

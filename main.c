@@ -1,5 +1,7 @@
 #include "raylib.h"
+#include "listaObstaculos.h" // << lista encadeada de obstaculos (baseada no material de sala)
 #include <stdlib.h>
+#include <stdio.h>
 #include <time.h>
 #include <stdbool.h>
 
@@ -13,7 +15,6 @@
 #define CARRO_H 77                                                       // Tamanho da LARGURA do carro
 #define OBSTACULO_W 65
 #define OBSTACULO_H 86
-#define MAXIMO_OBSTACULOS 12 // Máximo de obstaculos que terá o jogo
 
 // #*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#
 // Joguinho de Carro do Tesser
@@ -25,21 +26,14 @@ typedef struct {
     int faixa;
 } Jogador;
 
-// Struct de cada obstáculo (polícia)
-typedef struct {
-    Rectangle rect;
-    int faixa;
-    bool ativo;
-} Obstaculo;
-
 
 int centralizarFaixa(int f) { // Função pra definir o centro da faixa onde o carro estará
     return PISTA_ESQUERDA + f * FAIXA_LARGURA + FAIXA_LARGURA / 2;
 }
 
 
-void exibir_menu(int *estado, int *opcao, bool *fechar, Jogador *jogador, Obstaculo *obstaculos,
-              int *pontos, float *spawnTimer) {
+void exibir_menu(int *estado, int *opcao, bool *fechar, Jogador *jogador, Node *obstaculos,
+              int *pontos, float *spawnTimer, int *proximoId) {
 
     if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
         *opcao = 1;
@@ -53,11 +47,10 @@ void exibir_menu(int *estado, int *opcao, bool *fechar, Jogador *jogador, Obstac
             jogador->faixa = 1;
             jogador->rect.x = centralizarFaixa(jogador->faixa) - CARRO_W / 2.0f;
             jogador->rect.y = ALTURA - CARRO_H - 50.0f;
-            for (int i = 0; i < MAXIMO_OBSTACULOS; i++) {
-                obstaculos[i].ativo = false;
-            }
+            limpar_lista(obstaculos); // esvazia a lista de obstaculos (equivalente a zerar o array)
             *pontos = 0;
             *spawnTimer = 0.0f;
+            *proximoId = 1; // reinicia a numeracao dos nos a cada partida
             *estado = 1;
         } else {
             *fechar = true;
@@ -80,7 +73,8 @@ void exibir_menu(int *estado, int *opcao, bool *fechar, Jogador *jogador, Obstac
 
 
 void jogar_partida(int *estado, int *pontos, float *spawnTimer, Jogador *jogador,
-                  Obstaculo *obstaculos, float dt, Texture2D pista, Texture2D carro, Texture2D obstaculoTex) {
+                  Node *obstaculos, float dt, Texture2D pista, Texture2D carro, Texture2D obstaculoTex,
+                  int *proximoId) {
 
     if ((IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A)) && jogador->faixa > 0) {
         jogador->faixa--;
@@ -94,39 +88,46 @@ void jogar_partida(int *estado, int *pontos, float *spawnTimer, Jogador *jogador
     if (*spawnTimer >= 0.7f) {
         int f = rand() % NUMERO_FAIXAS;
         bool livre = true;
-        for (int i = 0; i < MAXIMO_OBSTACULOS; i++) {
-            if (obstaculos[i].ativo && obstaculos[i].faixa == f && obstaculos[i].rect.y < 220.0f) {
+        for (Node *no = obstaculos->next; no != NULL; no = no->next) {
+            if (no->data.faixa == f && no->data.rect.y < 220.0f) {
                 livre = false;
+                break;
             }
         }
 
         if (livre) {
             *spawnTimer = 0.0f;
-            for (int i = 0; i < MAXIMO_OBSTACULOS; i++) {
-                if (!obstaculos[i].ativo) {
-                    obstaculos[i].faixa = f;
-                    obstaculos[i].rect = (Rectangle){(float)centralizarFaixa(f) - OBSTACULO_W / 2.0f, -OBSTACULO_H, OBSTACULO_W, OBSTACULO_H};
-                    obstaculos[i].ativo = true;
-                    break;
-                }
-            }
+            Obstaculo novo = {
+                .rect = (Rectangle){(float)centralizarFaixa(f) - OBSTACULO_W / 2.0f, -OBSTACULO_H, OBSTACULO_W, OBSTACULO_H},
+                .faixa = f,
+                .id = (*proximoId)++ 
+            };
+            inserir_fim(obstaculos, novo);
         }
     }
 
-    for (int i = 0; i < MAXIMO_OBSTACULOS; i++) {
-        if (!obstaculos[i].ativo) {
+    
+    Node *anterior = obstaculos;
+    Node *atual = obstaculos->next;
+    while (atual != NULL) {
+        atual->data.rect.y += 260.0f * dt;
+
+        if (atual->data.rect.y > ALTURA) {
+            (*pontos)++;
+            Node *proximo = atual->next;
+            remover_no(anterior); 
+            atual = proximo;
             continue;
         }
-        obstaculos[i].rect.y += 260.0f * dt;
-        if (obstaculos[i].rect.y > ALTURA) {
-            obstaculos[i].ativo = false;
-            (*pontos)++; 
-        }
-        if (CheckCollisionRecs(jogador->rect, obstaculos[i].rect)) {
+
+        if (CheckCollisionRecs(jogador->rect, atual->data.rect)) {
             *estado = 2;
-            
         }
+
+        anterior = atual;
+        atual = atual->next;
     }
+    
 
     // Desenho da pista e do carro do jogador
     DrawTexturePro(pista, (Rectangle){0, 0, (float)pista.width, (float)pista.height},
@@ -135,14 +136,17 @@ void jogar_partida(int *estado, int *pontos, float *spawnTimer, Jogador *jogador
     DrawTexturePro(carro, (Rectangle){0, 0, (float)carro.width, (float)carro.height},
                    jogador->rect, (Vector2){0, 0}, 0.0f, WHITE);
 
-    for (int i = 0; i < MAXIMO_OBSTACULOS; i++) {
-        if (obstaculos[i].ativo) {
-            DrawTexturePro(obstaculoTex, (Rectangle){0, 0, (float)obstaculoTex.width, (float)obstaculoTex.height},
-                           obstaculos[i].rect, (Vector2){0, 0}, 0.0f, WHITE);
-        }
+    for (Node *no = obstaculos->next; no != NULL; no = no->next) {
+        DrawTexturePro(obstaculoTex, (Rectangle){0, 0, (float)obstaculoTex.width, (float)obstaculoTex.height},
+                       no->data.rect, (Vector2){0, 0}, 0.0f, WHITE);
+        // numero do no desenhado em cima do proprio obstaculo na pista
+        DrawText(TextFormat("%d", no->data.id),
+                 (int)(no->data.rect.x + no->data.rect.width / 2.0f - 6),
+                 (int)(no->data.rect.y - 18), 16, YELLOW);
     }
 
     DrawText(TextFormat("Pontos: %d", *pontos), 10, 10, 22, RAYWHITE);
+
 }
 
 
@@ -170,27 +174,28 @@ void exibir_fim(int *estado, int *opcao, int pontos, Jogador jogador, Texture2D 
     DrawText(e, LARGURA / 2 - MeasureText(e, 16) / 2, 320, 16, LIGHTGRAY);
 }
 
-int main(void) { 
+int main(void) {
     InitWindow(LARGURA, ALTURA, "Jogo de Desviar de obstáculos"); // Abertura da Janela
     SetTargetFPS(60);                                             // Definir os FPS do jogo
     SetExitKey(KEY_ESCAPE);                                       // Se quiser sair é so clicar no ESC
 
-    Texture2D pista = LoadTexture("background-1.png"); // Carrega o fundo do jogo
-    Texture2D carro = LoadTexture("Car_1_01.png");      // Carrega o carro
-    Texture2D obstaculoTex = LoadTexture("Police.png"); // Carrega o carro da policia
+    Texture2D pista = LoadTexture("images/background-1.png"); // Carrega o fundo do jogo
+    Texture2D carro = LoadTexture("images/Car_1_01.png");      // Carrega o carro
+    Texture2D obstaculoTex = LoadTexture("images/Police.png"); // Carrega o carro da policia
 
     int estado = 0;      // Dizer se o jogo está no estado jogando ou menu
     int opcao = 0;       // Serve pra dizer qual a opcao que o usuario escolheu
     bool fechar = false; // variavel booleana que serve para caso queira fechar o jogo
     int pontos = 0;          // Pontuacao
     float spawnTimer = 0.0f; // tempo de spawn dos obstaculos
+    int proximoId = 1;       // numeracao sequencial dos nos da lista de obstaculos
 
     Jogador jogador = {
         .faixa = 1,
         .rect = {(float)centralizarFaixa(1) - CARRO_W / 2.0f, ALTURA - CARRO_H - 50.0f, CARRO_W, CARRO_H}
     };
 
-    Obstaculo obstaculos[MAXIMO_OBSTACULOS] = {0};
+    Node *obstaculos = criar_lista(); // << cabecalho da lista encadeada de obstaculos
 
     while (!fechar && !WindowShouldClose()) {
         float dt = GetFrameTime();
@@ -199,16 +204,17 @@ int main(void) {
         ClearBackground(DARKGRAY);
 
         if (estado == 0) { // MENU
-            exibir_menu(&estado, &opcao, &fechar, &jogador, obstaculos, &pontos, &spawnTimer);
+            exibir_menu(&estado, &opcao, &fechar, &jogador, obstaculos, &pontos, &spawnTimer, &proximoId);
         } else if (estado == 1) { // JOGANDO
-            jogar_partida(&estado, &pontos, &spawnTimer, &jogador, obstaculos, dt, pista, carro, obstaculoTex);
-        } else { // NAO JOGANDO 
+            jogar_partida(&estado, &pontos, &spawnTimer, &jogador, obstaculos, dt, pista, carro, obstaculoTex, &proximoId);
+        } else { // NAO JOGANDO
             exibir_fim(&estado, &opcao, pontos, jogador, pista, carro);
         }
 
         EndDrawing();
     }
 
+    destruir_lista(obstaculos); // libera todos os nos + o cabecalho
     UnloadTexture(pista);
     UnloadTexture(carro);
     UnloadTexture(obstaculoTex);
