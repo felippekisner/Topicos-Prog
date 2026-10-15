@@ -6,7 +6,7 @@ list(PREPEND CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/build")
 
 find_package(raylib REQUIRED)
 
-add_executable(JogoNave main.c listaObstaculos.c listaObstaculos.h)
+add_executable(JogoNave src/main.c src/listaObstaculos.c src/listaObstaculos.h)
 target_link_libraries(JogoNave PRIVATE raylib)
 
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
