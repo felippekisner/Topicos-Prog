@@ -1,4 +1,4 @@
-<img width="1500" height="843" alt="photo-1614200202465-edf2c6127983" src="https://github.com/user-attachments/assets/14069ba3-7efd-45a2-a07e-d3c50b9ab1ca" />
+<img width="1000" height="488" alt="carro" src="https://github.com/user-attachments/assets/650c57b8-e210-48cc-96be-b24d08067eb3" />
 
 # Bem vindo ao Lane Rush
 
