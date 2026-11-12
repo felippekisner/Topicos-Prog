@@ -7,7 +7,9 @@
 typedef struct Obstaculo {
     Rectangle rect;
     int faixa;
-    int id; 
+    int id;
+    int tipo; // 0 = policia, 1 = agua, 2 = foguete, 3 = escudo, 4 = vida extra
+    float tempo; // ha quanto tempo o objeto existe (a agua usa pra aparecer aos poucos)
 } Obstaculo;
 
 typedef struct Node {
