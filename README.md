@@ -1,3 +1,6 @@
+<img src="/photo-1614200202465-edf2c6127983.png" alt="Imagem Carro" width="200" />
+
+
 # Bem vindo ao Lane Rush
 
 Este é um jogo de carro muito divertido e leve que pode rodar facilmente em seu PC, basta seguir as instruções.
