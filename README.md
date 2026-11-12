@@ -1,8 +1,8 @@
-#Bem vindo ao Lane Rush
+# Bem vindo ao Lane Rush
 
 Este é um jogo de carro muito divertido e leve que pode rodar facilmente em seu PC, basta seguir as instruções.
 
-#Instruções
+# Instruções
 
 1- Acessar o VS Code
 
