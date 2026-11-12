@@ -22,6 +22,8 @@ Este é um jogo de carro muito divertido e leve que pode rodar facilmente em seu
  
  cmake --build .
 
+ ./JogoNave
+
 # Instruções para o Windows
 
 1- Acessar o VS Code
@@ -41,6 +43,8 @@ Este é um jogo de carro muito divertido e leve que pode rodar facilmente em seu
  cmake .. -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release
 
  cmake --build . --config Release
+
+ ./JogoNave.exe
  
 # Caso tenha problemas para rodar
 
