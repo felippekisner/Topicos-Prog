@@ -9,6 +9,7 @@ Este é um jogo de carro muito divertido e leve que pode rodar facilmente em seu
 2- instalar as bibliotecas caso necessário
 
 3- Rodar os seguintes comandos:
+
  conan profile detect --force
  
  export CMAKE_POLICY_VERSION_MINIMUM=3.5 
