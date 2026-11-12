@@ -57,3 +57,12 @@ Este é um jogo de carro muito divertido e leve que pode rodar facilmente em seu
 3-  Verifique se as pastas estão na ordem correta
 
 4- Caso nenhum desses resolva, mande a mensagem de erro para uma Inteligência Artificial para identificar o problema.
+
+
+# Contribuidores para a criação deste belíssimo jogo:
+
+Felippe Tesser Kisner
+
+# Agradecimento especial:
+
+Paloma Beatriz Rohweder
