@@ -21,3 +21,7 @@ Este é um jogo de carro muito divertido e leve que pode rodar facilmente em seu
  cmake .. -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release
  
  cmake --build .
+
+# Caso tenha problemas para rodar
+
+Consulte uma Inteligência Artificial (Gemini, ChatGPT, Grok, Claude)
