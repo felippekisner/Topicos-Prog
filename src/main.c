@@ -19,13 +19,11 @@
 #define MAX_VIDAS 5             // limite de vidas (a vida extra nao passa disso)
 #define TEMPO_PODER 22.0f       // de quanto em quanto tempo (s) aparece um poder
 #define TEMPO_ESCUDO 5.0f       // quanto tempo (s) o escudo dura
-
-// Tipos de objeto que descem a pista
 #define POLICIA 0
 #define AGUA 1
-#define FOGUETE 2  // obstaculo: foguete 
-#define ESCUDO 3   // poder: escudo
-#define VIDA 4     // poder: vida extra
+#define FOGUETE 2  
+#define ESCUDO 3   
+#define VIDA 4     
 
 
 // #*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#
@@ -46,7 +44,7 @@ int centralizarFaixa(int f) { // Função pra definir o centro da faixa onde o c
 
 void exibir_menu(int *estado, int *opcao, bool *fechar, Jogador *jogador, Node *obstaculos,
               int *pontos, float *spawnTimer, int *proximoId, int *vida,
-              float *invencivel, float *spawn_poder, float *escudo) {
+              float *invuln, float *spawn_poder, float *escudo) {
 
     if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
         *opcao = 1;
@@ -65,7 +63,7 @@ void exibir_menu(int *estado, int *opcao, bool *fechar, Jogador *jogador, Node *
             *spawnTimer = 0.0f;
             *proximoId = 1; // reinicia a numeracao dos nos a cada partida
             *vida = NUMERO_VIDAS; // volta as vidas
-            *invencivel = 0.0f;
+            *invuln = 0.0f;
             *spawn_poder = 0.0f;
             *escudo = 0.0f;
             *estado = 1;
@@ -101,7 +99,7 @@ void jogar_partida(int *estado, int *pontos, float *spawnTimer, Jogador *jogador
                   Node *obstaculos, float dt, Texture2D pista, Texture2D carro, Texture2D obstaculoTex,
                   int *proximoId, int *vida, Texture2D agua_pista, Texture2D foguete_tex,
                   Sound *som_batida, Sound *torcida_triste, Sound *torcida,
-                  float *invencivel, float *spawn_poder, float *escudo) {
+                  float *invuln, float *spawn_poder, float *escudo) {
 
     if ((IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A)) && jogador->faixa > 0) {
         jogador->faixa--;
@@ -112,7 +110,7 @@ void jogar_partida(int *estado, int *pontos, float *spawnTimer, Jogador *jogador
     jogador->rect.x = centralizarFaixa(jogador->faixa) - CARRO_W / 2.0f;
 
     // Diminui os tempos da invencibilidade (que vem depois de levar dano) e do escudo
-    if (*invencivel > 0) *invencivel -= dt;
+    if (*invuln > 0) *invuln -= dt;
     if (*escudo > 0) *escudo -= dt;
 
     // A pista vai ficando mais rapida conforme os pontos (ate um limite)
@@ -183,7 +181,7 @@ void jogar_partida(int *estado, int *pontos, float *spawnTimer, Jogador *jogador
     Node *atual = obstaculos->next;
     while (atual != NULL) {
         float v = velocidade;
-        if (atual->data.tipo == FOGUETE) v = velocidade * 2.2f; // o foguete desce mais rapido
+        if (atual->data.tipo == FOGUETE) v = velocidade * 1.9f; // o foguete desce mais rapido
         atual->data.rect.y += v * dt;
         atual->data.tempo += dt;
 
@@ -195,7 +193,7 @@ void jogar_partida(int *estado, int *pontos, float *spawnTimer, Jogador *jogador
             continue;
         }
 
-        
+        // a agua so machuca depois de aparecer por completo (0.5s), pra ser justo
         bool colide = CheckCollisionRecs(jogador->rect, atual->data.rect);
         if (atual->data.tipo == AGUA && atual->data.tempo < 0.5f) colide = false;
 
@@ -212,19 +210,20 @@ void jogar_partida(int *estado, int *pontos, float *spawnTimer, Jogador *jogador
                 remover_no(anterior);
                 atual = proximo;
                 continue;
-            } else if (*invencivel <= 0) {
+            } else if (*invuln <= 0) {
                 PlaySound(*som_batida);
                 if (*escudo <= 0) {
                     // sem escudo: perde uma vida
                     PlaySound(*torcida_triste);
                     (*vida)--;
-                    *invencivel = 1.0f; // fica invencivel um tempinho
+                    *invuln = 1.0f; // fica invencivel um tempinho
                     if (*vida > 0) {
                         *estado = 1;
                     } else {
                         *estado = 2;
                     }
                 }
+                // (com escudo o obstaculo some e nao perde vida)
                 Node *proximo = atual->next; // o obstaculo que bateu some
                 remover_no(anterior);
                 atual = proximo;
@@ -242,7 +241,7 @@ void jogar_partida(int *estado, int *pontos, float *spawnTimer, Jogador *jogador
                    (Rectangle){0, 0, LARGURA, ALTURA}, (Vector2){0, 0}, 0.0f, WHITE);
 
     // o carro pisca enquanto esta invencivel por causa do dano
-    if (*invencivel <= 0 || ((int)(*invencivel * 10)) % 2 == 0) {
+    if (*invuln <= 0 || ((int)(*invuln * 10)) % 2 == 0) {
         DrawTexturePro(carro, (Rectangle){0, 0, (float)carro.width, (float)carro.height},
                        jogador->rect, (Vector2){0, 0}, 0.0f, WHITE);
     }
@@ -345,7 +344,7 @@ int main(void) {
     int pontos = 0;          // Pontuacao
     float spawnTimer = 0.0f; // tempo de spawn dos obstaculos
     float spawn_poder = 0.0f; // tempo de spawn do poder
-    float invencivel = 0.0f;     // tempo que ainda resta de invencibilidade
+    float invuln = 0.0f;     // tempo que ainda resta de invencibilidade
     float escudo = 0.0f;     // tempo que ainda resta de escudo
     bool mudo = false;       // true = som desligado
     Rectangle botaoSom = {LARGURA - 50, 10, 40, 40}; // botao do alto-falante (canto superior direito)
@@ -368,33 +367,32 @@ int main(void) {
         ClearBackground(DARKGRAY);
 
         if (estado == 0) { // MENU
-            exibir_menu(&estado, &opcao, &fechar, &jogador, obstaculos, &pontos, &spawnTimer, &proximoId, &vida, &invencivel, &spawn_poder, &escudo);
+            exibir_menu(&estado, &opcao, &fechar, &jogador, obstaculos, &pontos, &spawnTimer, &proximoId, &vida, &invuln, &spawn_poder, &escudo);
         } else if (estado == 1) { // JOGANDO
-            jogar_partida(&estado, &pontos, &spawnTimer, &jogador, obstaculos, dt, pista, carro, obstaculoTex, &proximoId, &vida, agua_pista, foguete_tex, &som_batida, &torcida_triste, &torcida, &invencivel, &spawn_poder, &escudo);
+            jogar_partida(&estado, &pontos, &spawnTimer, &jogador, obstaculos, dt, pista, carro, obstaculoTex, &proximoId, &vida, agua_pista, foguete_tex, &som_batida, &torcida_triste, &torcida, &invuln, &spawn_poder, &escudo);
         } else { // NAO JOGANDO
             exibir_fim(&estado, &opcao, pontos, jogador, pista, carro);
         }
 
-        // Botao de som: clicar no alto-falante ou apertar M liga/desliga todo o som
         if (IsKeyPressed(KEY_M) || (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(GetMousePosition(), botaoSom))) {
             mudo = !mudo;
             SetMasterVolume(mudo ? 0.0f : 1.0f);
         }
         DrawCircle(LARGURA - 30, 30, 20, Fade(BLACK, 0.5f));
-        DrawRectangle(LARGURA - 41, 26, 6, 8, WHITE);   // corpo do alto-falante
+        DrawRectangle(LARGURA - 41, 26, 6, 8, WHITE);   
         DrawTriangle((Vector2){LARGURA - 35, 30}, (Vector2){LARGURA - 25, 40}, (Vector2){LARGURA - 25, 20}, WHITE);
         if (mudo) {
             DrawLineEx((Vector2){LARGURA - 22, 24}, (Vector2){LARGURA - 12, 36}, 3, RED); // X vermelho = mudo
             DrawLineEx((Vector2){LARGURA - 22, 36}, (Vector2){LARGURA - 12, 24}, 3, RED);
         } else {
-            DrawLine(LARGURA - 21, 25, LARGURA - 21, 35, WHITE); // ondas de som
+            DrawLine(LARGURA - 21, 25, LARGURA - 21, 35, WHITE); 
             DrawLine(LARGURA - 17, 22, LARGURA - 17, 38, WHITE);
         }
 
         EndDrawing();
     }
 
-    destruir_lista(obstaculos); // libera todos os nos + o cabecalho
+    destruir_lista(obstaculos);
     UnloadTexture(pista);
     UnloadTexture(carro);
     UnloadTexture(obstaculoTex);
