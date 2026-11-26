@@ -1,5 +1,5 @@
 #include "raylib.h"
-#include "listaObstaculos.h" // << lista encadeada de obstaculos (baseada no material de sala)
+#include "listaObstaculos.h" // << lista encadeada de obstaculos 
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
